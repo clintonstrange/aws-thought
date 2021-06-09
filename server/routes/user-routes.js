@@ -27,16 +27,18 @@ router.get("/users/:username", (req, res) => {
   console.log(`Querying for thought(s) from ${req.params.username}.`);
   const params = {
     TableName: table,
-    ProjectionExpression: "#th, #ca",
     KeyConditionExpression: "#un = :user",
     ExpressionAttributeNames: {
       "#un": "username",
       "#ca": "createdAt",
       "#th": "thought",
+      "#img": "image", // add the image attribute alias
     },
     ExpressionAttributeValues: {
       ":user": req.params.username,
     },
+    ProjectionExpression: "#un, #th, #ca, #img", // add the image to the database response
+    ScanIndexForward: false, // false makes the order descending(true is default)
   };
   dynamodb.query(params, (err, data) => {
     if (err) {
@@ -50,22 +52,26 @@ router.get("/users/:username", (req, res) => {
 });
 
 // Create new user
-router.post('/users', (req, res) => {
+router.post("/users", (req, res) => {
   const params = {
     TableName: table,
     Item: {
-      "username": req.body.username,
-      "createdAt": Date.now(),
-      "thought": req.body.thought
-    }
+      username: req.body.username,
+      createdAt: Date.now(),
+      thought: req.body.thought,
+      image: req.body.image, // add new image attribute
+    },
   };
   dynamodb.put(params, (err, data) => {
     if (err) {
-      console.error("Unable to add item. Error JSON:", JSON.stringify(err, null, 2));
+      console.error(
+        "Unable to add item. Error JSON:",
+        JSON.stringify(err, null, 2)
+      );
       res.status(500).json(err); // an error occurred
     } else {
       console.log("Added item:", JSON.stringify(data, null, 2));
-      res.json({"Added": JSON.stringify(data, null, 2)});
+      res.json({ Added: JSON.stringify(data, null, 2) });
     }
   });
 });
